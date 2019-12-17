@@ -1,0 +1,158 @@
+
+*filter
+#### Set default behavior -- these get used in the case of fall through when no other rules apply
+# Allow all outgoing, but drop incoming and forwarding packets by default
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+# assume outgoing are okay by default
+:OUTPUT ACCEPT [0:0]
+
+#### Custom per-protocol chains
+:UDP - [0:0]
+:TCP - [0:0]
+:ICMP - [0:0]
+# icmp drop
+:ICMPDROP - [0:0]
+# invalid drop
+:INVDROP - [0:0]
+
+#### Acceptable UDP traffic
+# log UDP Traffic
+# -A UDP -m limit --limit 5/min -j LOG --log-prefix "iptables_UDP_TRAFFIC: " --log-level 7
+
+# allow dhcp traffic
+-A UDP -p udp --dport 67:68 --sport 67:68 -j ACCEPT
+
+# nfs - only from LAN
+-A UDP -s 10.1.1.0/24 -p udp --dport 111 -j ACCEPT
+# nfs statd 
+-A UDP -s 10.1.1.0/24 -p udp --dport 5666 -j ACCEPT
+# nfs lockd
+-A UDP -s 10.1.1.0/24 -p udp --dport 5667 -j ACCEPT
+# nfs mountd 
+-A UDP -s 10.1.1.0/24 -p udp --dport 5668 -j ACCEPT
+
+# allow from 192.168.122.0 network -- KVM guest/host networking
+-A UDP -s 192.168.122.0/24 -p udp -j ACCEPT
+
+# allow the vm bridge interface
+-A UDP -i virbr0 -p UDP -j ACCEPT 
+
+# allow NoMachine 
+-A UDP -s 10.1.1.0/24 -p udp --dport 4000 -j ACCEPT
+
+#### Acceptable TCP traffic 
+# log TCP Traffic
+# -A TCP -m limit --limit 5/min -j LOG --log-prefix "iptables_TCP_TRAFFIC: " --log-level 7
+# ssh - only from LAN
+-A TCP -s 10.1.1.0/24 -p tcp --dport 59033 -j ACCEPT
+
+# NoMachine 
+-A TCP -s 10.1.1.0/24 -p tcp --dport 4000 -j ACCEPT
+
+# htpc web servers
+-A TCP -p tcp -m multiport --dports 9095,9096,9097,9098 -j ACCEPT
+
+# nfs - only from LAN
+-A TCP -s 10.1.1.0/24 -p tcp --dport 111 -j ACCEPT
+-A TCP -s 10.1.1.0/24 -p tcp --dport 2049 -j ACCEPT
+# nfs statd 
+-A TCP -s 10.1.1.0/24 -p tcp --dport 5666 -j ACCEPT
+# nfs lockd
+-A TCP -s 10.1.1.0/24 -p tcp --dport 5667 -j ACCEPT
+# nfs mountd 
+-A TCP -s 10.1.1.0/24 -p tcp --dport 5668 -j ACCEPT
+
+# Allow from 192.168.122.0 network -- KVM guest/host networking
+-A TCP -s 192.168.122.0/24 -p tcp -j ACCEPT
+
+# allow the vm bridge interface
+-A TCP -i virbr0 -p tcp -j ACCEPT
+
+### Acceptable ICMP traffic
+# log ICMP Traffic
+#-A ICMP -m limit --limit 5/min -j LOG --log-prefix "iptables_ICMP_TRAFFIC: " --log-level 7
+
+# allow 192.168.122.0 network -- kvm guest/host traffic
+-A ICMP -s 192.168.122.0/24 -p icmp -j ACCEPT
+
+# allow echo request (ping, type 8) from the LAN, but not from outside
+-A ICMP -s 10.1.1.0/24 -p icmp --icmp-type echo-request -j ACCEPT
+-A ICMP -p icmp --icmp-type echo-request -j ICMPDROP
+# drop outgoing echo-replys (type 0, pong) that aren't going to the LAN
+-A OUTPUT ! -d 10.1.1.0/24 -p icmp --icmp-type echo-reply -j ICMPDROP
+# allow Destination Unreachable (type 3)
+-A ICMP -p icmp --icmp-type destination-unreachable -j ACCEPT
+# allow source quench (type 4)
+-A ICMP -p icmp --icmp-type source-quench -j ACCEPT
+# allow the vm bridge interface
+-A ICMP -i virbr0 -p icmp -j ACCEPT
+# drop any other ICMP packets that make it here
+-A ICMP -p icmp -j ICMPDROP
+
+#### Protocol chain for dropped ICMP packets.
+-A ICMPDROP -m limit --limit 5/min -j LOG --log-prefix "iptables_ICMP_DROPPED_TRAFFIC: " --log-level 7
+-A ICMPDROP -p icmp -j DROP
+
+#### Protocol chain for invalid and dropped packets.
+# Allows easy logging
+-A INVDROP -m limit --limit 5/min -j LOG --log-prefix "iptables_INPUT_INVALID_drop: " --log-level 7
+-A INVDROP -m conntrack --ctstate INVALID -j DROP
+
+#### Boilerplate acceptance policy
+# Accept established and related connections, and stuff to the loopback interface
+-A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+-A INPUT -i lo -j ACCEPT
+
+#### Pass traffic to protocol-specific chains
+# Drop invalid first before passing them to the protocol specific chains.
+# The INVDROP chain will log the drop.
+# Only allow new connections (established and related should already be handled)
+# For TCP, additionally only allow new SYN packets since that is the only valid
+# method for establishing a new TCP connection
+-A INPUT -m conntrack --ctstate INVALID -j INVDROP
+-A INPUT -p udp -m conntrack --ctstate NEW -j UDP
+-A INPUT -p tcp --syn -m conntrack --ctstate NEW -j TCP
+-A INPUT -p icmp -m conntrack --ctstate NEW -j ICMP
+
+#### Log then drop incoming packets that made it this far -- what we want was accepted
+# above.
+#-A INPUT -m limit --limit 5/min -j LOG --log-prefix "iptables_INPUT_drop: " --log-level 7
+-A INPUT -j DROP
+
+#### Forwarded traffic
+# Allow forwarded traffic related to VMS
+-A FORWARD -i virbr0 -j ACCEPT
+-A FORWARD -o virbr0 -j ACCEPT
+
+# Log then drop any other forwarded traffic.
+# Expected forwarded traffic was accepted above
+-A FORWARD -m limit --limit 5/min -j LOG --log-prefix "iptables_FORWARD_drop: " --log-level 7
+-A FORWARD -j DROP
+COMMIT
+
+*raw
+:PREROUTING ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+COMMIT
+
+*nat
+:PREROUTING ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+COMMIT
+
+*security
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+COMMIT
+
+*mangle
+:PREROUTING ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+COMMIT

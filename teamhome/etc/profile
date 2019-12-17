@@ -1,0 +1,38 @@
+# /etc/profile: system-wide .profile file for the Bourne shell (sh(1))
+# and Bourne compatible shells (bash(1), ksh(1), ash(1), ...).
+# From man bash:
+# "... When bash is invoked as an interactive login shell, or as a non-interactive
+# shell with the --login option, it first  reads  and  executes  commands
+# from  the  file  /etc/profile,  if that file exists.  After reading that
+# file, it looks for ~/.bash_profile, ~/.bash_login, and ~/.profile, in that
+# order, and reads and executes commands from the first one that exists and is readable.  
+# The --noprofile option  may  be  used when  the  shell  is started to inhibit
+# this behavior. "
+
+if [ "$PS1" ]; then
+  if [ "$BASH" ] && [ "$BASH" != "/bin/sh" ]; then
+    # The file bash.bashrc already sets the default PS1.
+    # PS1='\h:\w\$ '
+    if [ -f /etc/bash.bashrc ]; then
+      . /etc/bash.bashrc
+    fi
+  else
+    if [ "`id -u`" -eq 0 ]; then
+      PS1='# '
+    else
+      PS1='$ '
+    fi
+  fi
+fi
+
+# The default umask is now handled by pam_umask.
+# See pam_umask(8) and /etc/login.defs.
+
+if [ -d /etc/profile.d ]; then
+  for i in /etc/profile.d/*.sh; do
+    if [ -r $i ]; then
+      . $i
+    fi
+  done
+  unset i
+fi

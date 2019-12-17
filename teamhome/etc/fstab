@@ -1,0 +1,81 @@
+# /etc/fstab: static file system information.
+#
+# Use 'blkid' to print the universally unique identifier for a
+# device; this may be used with UUID= as a more robust way to name devices
+# that works even if disks are added and removed. See fstab(5).
+#
+# <file system> <mount point>   <type>  <options>       <dump>  <pass>
+
+# / was on /dev/sda2 during installation
+UUID=16104419-e71f-4187-9a68-2edfe64d8671 /                 ext4    noatime,errors=remount-ro      0  1
+# Note: Below a tmp directory on the 3tb drive is mounted to /tmp to allow temp to be on the hdd
+
+# /home was on /dev/sda3 during installation - and was then moved to a partition off the sdd to a hdd
+# see the below entry under the 3tb hd.  
+# Use the original partition as a backup until I am sure everything
+# UUID=bfa1a60b-25d4-44da-aee9-8e690cc53793 /home           ext4    defaults,noatime               0  2
+# UUID=bfa1a60b-25d4-44da-aee9-8e690cc53793 /home_old         ext4    defaults,noatime               0  2
+
+# swap was on /dev/sda1 during installation
+UUID=5dab93a9-4411-4cdd-8343-28e400e6c405 none              swap    sw                             0  0
+
+# 3 tb data drive linux partition (most of the drive)
+#UUID=d39bea28-35d7-41c2-8b72-025222480984 /home/teamparent/htpc_backup  ext4    defaults          0  2
+UUID=d39bea28-35d7-41c2-8b72-025222480984 /media/hdd3tb     ext4    defaults                       0  2
+# new home location
+/media/hdd3tb/home                        /home             none    bind                           0  0
+# new tmp location
+/media/hdd3tb/tmp                         /tmp              none    bind                           0  0
+
+# NTFS partition of data drive for windows kvm vms
+# UUID=69D52982507E8FE0 /home/teamparent/WinVm                ntfs    defaults,noauto,nofail,user,sync          0  0
+
+# WD 2TB external drive, 2 partitions, one ext4, one ntfs
+# ext4 partition
+UUID=7a90ee03-1886-4476-86ef-470690f81e3c /media/teamparent/wde2tb  ext4   defaults,noauto,nofail,user,sync   0  0
+/media/teamparent/wde2tb		/home/teamparent/wde2tb	none 	bind		0	0
+
+# ntfs partition
+UUID=200F3F902828DD44   /media/teamparent/wde2tbntfs        ntfs    defaults,noauto,nofail,user,sync      0  0
+/media/teamparent/wde2tbntfs    /home/teamparent/wde2tbntfs  none  bind    0 0
+
+# NFS mounts -- use NFSv4
+# 10.1.1.120 htpc server(mediamain, mediamain.deaftone.com)
+# 10.1.1.121 htpc client (couchkid1)
+# 10.1.1.122 team main pc (teamhome)
+# 10.1.1.125 Rasberry Pi (mediaorleans, mediaorleans.deaftone.com)
+
+# First bind actual folders to the NFSv4 virtual root (/exports) for this host
+# so clients can see the data without needing to copy it or make links
+/home/teamparent/Pictures/PictureStore    /exports/pictures   none bind                         0   0
+/home/teamparent/Videos/VideoStore        /exports/videos     none bind                         0   0
+/home/teamparent/Music/MusicStore         /exports/music      none bind                         0   0
+/home/teamparent/xfer_team                /exports/xfer_team  none bind                         0   0
+
+# mount exports from the other hosts
+# rw access to htpc data so this host can delete, move, rename, etc.
+10.1.1.120:/htpc            /nfsmnt/htpc                    nfs4    rw,nofail,hard,intr,rsize=32768,wsize=32768         0   0
+
+# easy file transfer
+10.1.1.120:/xfer_couch       /nfsmnt/xfer_couch              nfs4    rw,nofail,hard,intr,rsize=32768,wsize=32768        0   0
+10.1.1.121:/xfer_couchkid    /nfsmnt/xfer_couchkid           nfs4    rw,nofail,hard,intr,rsize=32768,wsize=32768        0   0
+#10.1.1.125:/xfer_tot         /nfsmnt/xfer_tot                nfs4    rw,nofail,hard,intr,rsize=32768,wsize=32768        0   0
+
+#teamparent backup
+10.1.1.120:/teamBackup            /nfsmnt/teamBackup               nfs4    rw,nofail,hard,intr,rsize=32768,wsize=32768         0   0
+
+#orleans cloud backup -- temporary
+#10.1.1.125:/orleanscloud            /nfsmnt/orleanscloud               nfs4    rw,nofail,hard,intr,rsize=32768,wsize=32768         0   0
+
+# now bind the mount points to places where the user wants to see the data
+/nfsmnt/htpc              /home/teamparent/htpc        	    none    bind                             0   0
+/nfsmnt/xfer_couch        /home/teamparent/xfer_couch       none    bind                             0   0
+/nfsmnt/xfer_couchkid     /home/teamparent/xfer_couchkid    none    bind                             0   0
+/nfsmnt/xfer_tot          /home/teamparent/xfer_tot         none    bind                             0   0
+
+#orleanscloud - 
+#/media/teamparent/orleansdata              /home/teamparent/orleanscloud           none    bind                             0   0
+
+# usb drives
+#UUID=8330-4EEB /media/teamparent/usb4gb  vfat   defaults,noauto,nofail,user,sync   0  0
+

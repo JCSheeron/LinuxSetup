@@ -1,0 +1,16 @@
+127.0.0.1	localhost
+127.0.1.1	teamhome.deaftone.com teamhome
+
+
+# The following lines are desirable for IPv6 capable hosts
+::1     ip6-localhost ip6-loopback
+fe00::0 ip6-localnet
+ff00::0 ip6-mcastprefix
+ff02::1 ip6-allnodes
+ff02::2 ip6-allrouters
+
+10.1.1.120 mediamain.deaftone.com mediamain
+10.1.1.122 teamhome.deaftone.com teamhome
+# old 10.1.1.125 mediaorleans.deaftone.com mediaorleans
+10.1.1.137 totsandbox.deaftone.com totsandbox
+

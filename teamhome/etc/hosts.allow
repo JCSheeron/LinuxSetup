@@ -1,0 +1,24 @@
+# /etc/hosts.allow: list of hosts that are allowed to access the system.
+#                   See the manual pages hosts_access(5) and hosts_options(5).
+#
+# Example:    ALL: LOCAL @some_netgroup
+#             ALL: .foobar.edu EXCEPT terminalserver.foobar.edu
+#
+# If you're going to protect the portmapper use the name "rpcbind" for the
+# daemon name. See rpcbind(8) and rpc.mountd(8) for further information.
+#
+# 10.1.1.120 htpc server (mediamain)
+# 10.1.1.121 htpc client (couchkid1)
+# 10.1.1.122 main pc (teamhome)
+# 10.1.1.125 rasberry pi (mediaorleans) old ip address. this is now at moms
+# 10.1.1.132 & .133  GA Engr Lt
+
+# nfs
+portmap: 10.1.1.120, 10.1.1.121
+lockd: 10.1.1.120, 10.1.1.121
+rquotad: 10.1.1.120, 10.1.1.121
+mountd: 10.1.1.120, 10.1.1.121
+statd: 10.1.1.120, 10.1.1.121
+
+#ssh
+sshd: 10.1.1.121, 10.1.1.132, 10.1.1.133

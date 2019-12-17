@@ -1,0 +1,46 @@
+# /etc/exports: the access control list for filesystems which may be exported
+#		to NFS clients.  See exports(5).
+#
+# Example for NFSv2 and NFSv3:
+# /srv/homes       hostname1(rw,sync,no_subtree_check) hostname2(ro,sync,no_subtree_check)
+#
+# Example for NFSv4:
+# /srv/nfs4        gss/krb5i(rw,sync,fsid=0,crossmnt,no_subtree_check)
+# /srv/nfs4/homes  gss/krb5i(rw,sync,no_subtree_check)
+#
+# 10.1.1.120 htpc server (mediamain)
+# 10.1.1.121 htpc client (couchkid)
+# 10.1.1.122 main pc (teamhome)
+# 10.1.1.125 rasberry pi (mediaorleans) old ip, now at Moms
+
+# NFSv4 exports
+#
+# NFSv4 virtual root
+/exports        	10.1.1.121(rw,fsid=0,subtree_check,sync,root_squash,crossmnt)
+/exports		10.1.1.122(rw,fsid=0,subtree_check,sync,root_squash,crossmnt)
+
+# export transfer directory to facilitate easy transfers between machines
+/exports/xfer_couch   10.1.1.121(rw,sync,root_squash,no_subtree_check)
+/exports/xfer_couch   10.1.1.122(rw,sync,root_squash,no_subtree_check)
+
+# htpc media -- export these to the htpc clients
+# read only so the clients can't delete
+/exports/htpc/movies            10.1.1.121(ro,sync,root_squash,no_subtree_check)
+/exports/htpc/kidsmovies        10.1.1.121(ro,sync,root_squash,no_subtree_check)
+/exports/htpc/tv                10.1.1.121(ro,sync,root_squash,no_subtree_check)
+/exports/htpc/kidstv            10.1.1.121(ro,sync,root_squash,no_subtree_check)
+
+#htpc media -- export these read/write to teamparent so the files can be managed (deleted, moved, etc)
+/exports/htpc/movies 		10.1.1.122(rw,sync,root_squash,no_subtree_check)
+/exports/htpc/kidsmovies 	10.1.1.122(rw,sync,root_squash,no_subtree_check)
+/exports/htpc/tv 		10.1.1.122(rw,sync,root_squash,no_subtree_check)
+/exports/htpc/kidstv 		10.1.1.122(rw,sync,root_squash,no_subtree_check)
+/exports/htpc/complete 		10.1.1.122(rw,sync,root_squash,no_subtree_check)
+/exports/htpc/incomplete	10.1.1.122(rw,sync,root_squash,no_subtree_check)
+/exports/htpc/nzb 		10.1.1.122(rw,sync,root_squash,no_subtree_check)
+/exports/htpc/nzbbak 		10.1.1.122(rw,sync,root_squash,no_subtree_check)
+
+#teamparent backup
+# export with no_root_squash to allow BackInTime root on teamparent to backup root owned files
+# to this directory, and have ownership and group name preserved
+/exports/teamBackup 		10.1.1.122(rw,sync,no_root_squash,no_subtree_check)

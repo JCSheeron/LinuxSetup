@@ -1,0 +1,76 @@
+
+*filter
+#### Set default behavior -- these get used in the case of fall through when no other rules apply
+# Allow all outgoing, but drop incoming and forwarding packets by default
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+# assume outgoing are okay by default
+:OUTPUT ACCEPT [0:0]
+
+#### Custom per-protocol chains
+:UDP - [0:0]
+:TCP - [0:0]
+:ICMP - [0:0]
+
+#### Acceptable UDP traffic
+
+#### Acceptable TCP traffic 
+# ssh
+-A TCP -p tcp --dport 9033 -j ACCEPT
+
+#### Acceptable ICMP traffic
+# allow echo request (ping, type 8) from the LAN, but not from outside
+-A ICMP -s 10.10.1.0/24 -p icmp --icmp-type echo-request -j ACCEPT
+-A ICMP -p icmp --icmp-type echo-request -j DROP
+# drop outgoing echo-replys (type 0, pong) that aren't going to the LAN
+-A OUTPUT ! -d 10.10.1.0/24 -p icmp --icmp-type echo-reply -j DROP
+# allow Destination Unreachable (type 3)
+-A ICMP -p icmp --icmp-type destination-unreachable -j ACCEPT
+# allow source quench (type 4)
+-A ICMP -p icmp --icmp-type source-quench -j ACCEPT
+
+#### Boilerplate acceptance policy
+-A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+-A INPUT -i lo -j ACCEPT
+
+#### Drop invalid packets
+-A INPUT -m conntrack --ctstate INVALID -j DROP
+
+#### Pass traffic to protocol-specific chains
+# Only allow new connections (established and related should already be handled)
+# For TCP, additionally only allow new SYN packets since that is the only valid
+# method for establishing a new TCP connection
+-A INPUT -p udp -m conntrack --ctstate NEW -j UDP
+-A INPUT -p tcp --syn -m conntrack --ctstate NEW -j TCP
+-A INPUT -p icmp -m conntrack --ctstate NEW -j ICMP
+
+# Drop anything that's fallen through to this point
+-A INPUT -j DROP
+
+COMMIT
+
+*raw
+:PREROUTING ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+COMMIT
+
+*nat
+:PREROUTING ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+COMMIT
+
+*security
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+COMMIT
+
+*mangle
+:PREROUTING ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+COMMIT
