@@ -1,0 +1,4 @@
+# vm shares via KVM file system passthur (virtfs)
+# vmTab name comes from KVM filesystem config
+vmTab /home/vmuser1/vmShare     9p      rw,user,noatime,trans=virtio,version=9p2000.L	0	0
+
