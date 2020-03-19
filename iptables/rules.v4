@@ -1,0 +1,117 @@
+
+*filter
+#### Set default behavior -- these get used in the case of fall through when no other rules apply
+# Allow all outgoing, but drop incoming and forwarding packets by default
+:INPUT DROP [0:0]
+:FORWARD DROP [0:0]
+# assume outgoing are okay by default
+:OUTPUT ACCEPT [0:0]
+
+#### Custom per-protocol chains
+:UDP - [0:0]
+:TCP - [0:0]
+:ICMP - [0:0]
+
+#### Acceptable UDP traffic
+# allow dhcp traffic
+-A UDP -p udp --dport 67:68 --sport 67:68 -j ACCEPT
+# nfs - only from LAN
+#-A UDP -s 10.1.1.0/24 -p udp --dport 111 -j ACCEPT
+# nfs statd 
+#-A UDP -s 10.1.1.0/24 -p udp --dport 5666 -j ACCEPT
+# nfs lockd
+#-A UDP -s 10.1.1.0/24 -p udp --dport 5667 -j ACCEPT
+# nfs mountd 
+#-A UDP -s 10.1.1.0/24 -p udp --dport 5668 -j ACCEPT
+# allow from 192.168.122.0 network -- KVM guest/host networking
+-A UDP -s 192.168.122.0/24 -p udp -j ACCEPT
+
+#### Acceptable TCP traffic 
+# ssh - only from LAN
+-A TCP -s 10.1.1.0/24 -p tcp --dport 59033 -j ACCEPT
+# htpc web servers
+#-A TCP -p tcp -m multiport --dports 9095,9096,9097,9098 -j ACCEPT
+# nfs - only from LAN
+#-A TCP -s 10.1.1.0/24 -p tcp --dport 111 -j ACCEPT
+#-A TCP -s 10.1.1.0/24 -p tcp --dport 2049 -j ACCEPT
+# nfs statd 
+#-A TCP -s 10.1.1.0/24 -p tcp --dport 5666 -j ACCEPT
+# nfs lockd
+#-A TCP -s 10.1.1.0/24 -p tcp --dport 5667 -j ACCEPT
+# nfs mountd 
+#-A TCP -s 10.1.1.0/24 -p tcp --dport 5668 -j ACCEPT
+# Allow from 192.168.122.0 network -- KVM guest/host networking
+-A TCP -s 192.168.122.0/24 -p tcp -j ACCEPT
+
+### Acceptable ICMP traffic
+# allow 192.168.122.0 network -- kvm guest/host traffic
+-A ICMP -s 192.168.122.0/24 -p icmp -j ACCEPT
+# allow echo request (ping, type 8) from the LAN, but not from outside
+-A ICMP -s 10.1.1.0/24 -p icmp --icmp-type echo-request -j ACCEPT
+-A ICMP -p icmp --icmp-type echo-request -j DROP
+# drop outgoing echo-replys (type 0, pong) that aren't going to the LAN
+-A OUTPUT ! -d 10.1.1.0/24 -p icmp --icmp-type echo-reply -j DROP
+# allow Destination Unreachable (type 3)
+-A ICMP -p icmp --icmp-type destination-unreachable -j ACCEPT
+# allow source quench (type 4)
+-A ICMP -p icmp --icmp-type source-quench -j ACCEPT
+
+#### Boilerplate acceptance policy
+-A INPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+-A INPUT -i lo -j ACCEPT
+
+# allow forwarded traffic from vm interface so vm machines can access the internet 
+#-A INPUT -i vnet0 -j ACCEPT
+#-A FORWARD -i vnet0 -j ACCEPT
+#-A FORWARD -o vnet0 -j ACCEPT
+#-A INPUT -i virbr0 -j ACCEPT
+#-A FORWARD -i virbr0 -j ACCEPT
+#-A FORWARD -o virbr0 -j ACCEPT
+
+
+#### Drop invalid packets
+-A INPUT -m conntrack --ctstate INVALID -j DROP
+
+#### Pass traffic to protocol-specific chains
+# Only allow new connections (established and related should already be handled)
+# For TCP, additionally only allow new SYN packets since that is the only valid
+# method for establishing a new TCP connection
+-A INPUT -p udp -m conntrack --ctstate NEW -j UDP
+-A INPUT -p tcp --syn -m conntrack --ctstate NEW -j TCP
+-A INPUT -p icmp -m conntrack --ctstate NEW -j ICMP
+
+# Log incoming packets that have fallen thru to this point.
+# The'll be dropped after logging
+#-A INPUT -m limit --limit 5/min -j LOG --log-prefix "iptables_INPUT_drop: " --log-level 7
+# Drop anything that's fallen through to this point
+-A INPUT -j DROP
+# Log traffic that was sent for forwarding
+-A FORWARD -m limit --limit 5/min -j LOG --log-prefix "iptables_FORWARD_drop: " --log-level 7
+-A FORWARD -j DROP
+COMMIT
+
+*raw
+:PREROUTING ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+COMMIT
+
+*nat
+:PREROUTING ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+COMMIT
+
+*security
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+COMMIT
+
+*mangle
+:PREROUTING ACCEPT [0:0]
+:INPUT ACCEPT [0:0]
+:FORWARD ACCEPT [0:0]
+:OUTPUT ACCEPT [0:0]
+:POSTROUTING ACCEPT [0:0]
+COMMIT

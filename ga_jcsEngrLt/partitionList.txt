@@ -1,0 +1,40 @@
+lsblk
+
+NAME   MAJ:MIN RM   SIZE RO TYPE MOUNTPOINT
+sr0     11:0    1  1024M  0 rom  
+sda      8:0    0 698.7G  0 disk 
+├─sda2   8:2    0     1K  0 part 
+├─sda5   8:5    0 521.9G  0 part /home
+├─sda1   8:1    0  23.4G  0 part /
+└─sda6   8:6    0  30.8G  0 part [SWAP]
+
+fdisk -l
+
+Disk /dev/sda: 750.2 GB, 750156374016 bytes
+255 heads, 63 sectors/track, 91201 cylinders, total 1465149168 sectors
+Units = sectors of 1 * 512 = 512 bytes
+Sector size (logical/physical): 512 bytes / 4096 bytes
+I/O size (minimum/optimal): 4096 bytes / 4096 bytes
+Disk identifier: 0x000a3369
+
+   Device Boot      Start         End      Blocks   Id  System
+/dev/sda1   *        2048    49025023    24511488   83  Linux
+/dev/sda2        97658878  1465147391   683744257    5  Extended
+Partition 2 does not start on physical sector boundary.
+/dev/sda5        97658880  1192208383   547274752   83  Linux
+/dev/sda6      1400696832  1465147391    32225280   82  Linux swap / Solaris
+
+parted -l
+
+Model: ATA WDC WD7500BPKX-8 (scsi)
+Disk /dev/sda: 750GB
+Sector size (logical/physical): 512B/4096B
+Partition Table: msdos
+
+Number  Start   End     Size    Type      File system     Flags
+ 1      1049kB  25.1GB  25.1GB  primary   ext4            boot
+ 2      50.0GB  750GB   700GB   extended
+ 5      50.0GB  610GB   560GB   logical   ext4
+ 6      717GB   750GB   33.0GB  logical   linux-swap(v1)
+
+
